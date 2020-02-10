@@ -1,0 +1,37 @@
+Bootstrap: docker
+From: continuumio/anaconda3
+
+%runscript
+
+%files
+    survival_analysis_environment.yml /root
+
+%environment
+
+
+%labels
+
+
+%post
+    apt update -y
+    apt upgrade -y
+    apt install curl -y
+    apt install wget -y
+    apt install git -y    
+#    wget https://repo.anaconda.com/archive/Anaconda3-2019.10-Linux-x86_64.sh -O ~/anaconda.sh
+#    bash ~/anaconda.sh -b -p $HOME/anaconda
+#    . $HOME/anaconda/etc/profile.d/conda.sh
+
+#    . /opt/conda/etc/profile.d/conda.sh
+#    "no | dpkg-reconfigure dash"
+    . /opt/conda/etc/profile.d/conda.sh
+    #conda --version
+
+   conda update -n base -c defaults conda  
+   conda env create -f /root/survival_analysis_environment.yml
+   conda activate survival_tests
+   opt/conda/bin/conda install -c anaconda pip
+
+   pip install git+https://github.com/mlindauer/ASlibScenario.git
+
+   echo "Successfully installed all features"
