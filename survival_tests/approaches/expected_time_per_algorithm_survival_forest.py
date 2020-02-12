@@ -21,6 +21,14 @@ class ExpectedTimePerAlgorithmSurvivalForest:
         self.num_algorithms = 0
         self.algorithm_cutoff_time = -1;
 
+        self.n_estimators = 1000
+        self.min_samples_split = 10
+        self.min_samples_leaf = 15
+        self.min_weight_fraction_leaf = 0.0
+        self.max_features = "sqrt"
+        self.bootstrap = True
+        self.oob_score = False
+
     def fit(self, scenario: ASlibScenario, fold: int, amount_of_training_instances: int):
         print("Run fit on " + self.get_name() + " for fold " + str(fold))
         self.num_algorithms = len(scenario.algorithms)
@@ -39,10 +47,13 @@ class ExpectedTimePerAlgorithmSurvivalForest:
             X_train = standard_scaler.fit_transform(X_train)
             self.trained_scalers.append(standard_scaler)
 
-            model = RandomSurvivalForest(n_estimators=1000,
-                                        min_samples_split=10,
-                                        min_samples_leaf=15,
-                                        max_features="sqrt",
+            model = RandomSurvivalForest(n_estimators=self.n_estimators,
+                                        min_samples_split=self.min_samples_split,
+                                        min_samples_leaf=self.min_samples_leaf,
+                                        min_weight_fraction_leaf = self.min_weight_fraction_leaf,
+                                        max_features=self.max_features,
+                                        bootstrap = self.bootstrap,
+                                        oob_score= self.oob_score,
                                         n_jobs=1,
                                         random_state=fold)
             model.fit(X_train, y_train)
@@ -155,3 +166,13 @@ class ExpectedTimePerAlgorithmSurvivalForest:
 
     def get_name(self):
         return "expected_time_per_algorithm_survival_forest"
+
+
+    def set_parameters(self, parametrization):
+        self.n_estimators = parametrization["n_estimators"]
+        self.min_samples_split = parametrization["min_samples_split"]
+        self.min_samples_leaf = parametrization["min_samples_leaf"]
+        self.min_weight_fraction_leaf = parametrization["min_weight_fraction_leaf"]
+        self.max_features = parametrization["max_features"]
+        self.bootstrap = parametrization["bootstrap"]
+        self.oob_score = parametrization["oob_score"]
