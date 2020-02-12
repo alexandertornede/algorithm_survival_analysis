@@ -20,7 +20,7 @@ logger = logging.getLogger("run")
 logger.addHandler(logging.StreamHandler())
 
 def initialize_logging():
-    logging.basicConfig(filename='logs/log_file.log', filemode='w', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
+    logging.basicConfig(filename='logs/log_file.log', filemode='w', format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.DEBUG)
 
 def load_configuration():
     config = configparser.ConfigParser()
@@ -77,6 +77,7 @@ pool = mp.Pool(amount_of_cpus_to_use)
 scenarios = config["EXPERIMENTS"]["scenarios"].split(",")
 approach_names = config["EXPERIMENTS"]["approaches"].split(",")
 amount_of_scenario_training_instances = int(config["EXPERIMENTS"]["amount_of_training_scenario_instances"])
+tune_hyperparameters = bool(int(config["EXPERIMENTS"]["tune_hyperparameters"]))
 
 for fold in range(1, 11):
     for scenario in scenarios:
@@ -92,9 +93,9 @@ for fold in range(1, 11):
                 #metrics.append(Par10SchedulingMetric(5))
                 #metrics.append(Par10SchedulingMetric(-1))
             logger.info("Submitted pool task for approach \"" + str(approach.get_name()) + "\" on scenario: " + scenario)
-            pool.apply_async(evaluate_scenario, args=(scenario, approach, metrics, amount_of_scenario_training_instances, fold, config), callback=log_result)
+            pool.apply_async(evaluate_scenario, args=(scenario, approach, metrics, amount_of_scenario_training_instances, fold, config, tune_hyperparameters), callback=log_result)
 
-            #evaluate_scenario(scenario, approach, metrics, amount_of_scenario_training_instances, fold, config)
+            #evaluate_scenario(scenario, approach, metrics, amount_of_scenario_training_instances, fold, config, tune_hyperparameters)
 
 pool.close()
 pool.join()
