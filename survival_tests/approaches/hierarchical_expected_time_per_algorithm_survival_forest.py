@@ -5,17 +5,19 @@ from sksurv.ensemble import RandomSurvivalForest
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.utils import resample
+from sklearn.ensemble import RandomForestClassifier
 import logging
 #import matplotlib.pyplot as plt
 #import seaborn as sns
 
 
-class ExpectedTimePerAlgorithmSurvivalForest:
+class HierarchicalExpectedTimePerAlgorithmSurvivalForest:
 
     def __init__(self):
         self.logger = logging.getLogger("expected_time_per_algorithm_survival_forest")
         self.logger.addHandler(logging.StreamHandler())
-        self.trained_models = list()
+        self.trained_survival_models = list()
+        self.trained_classification_models = list()
         self.trained_imputers = list()
         self.trained_scalers = list()
         self.num_algorithms = 0
@@ -35,7 +37,7 @@ class ExpectedTimePerAlgorithmSurvivalForest:
         self.algorithm_cutoff_time = scenario.algorithm_cutoff_time
 
         for algorithm_id in range(self.num_algorithms):
-            X_train, y_train = self.get_x_y(scenario, amount_of_training_instances, algorithm_id, fold)
+            X_train, y_train, y_train_classification = self.get_sa_x_y(scenario, amount_of_training_instances, algorithm_id, fold)
 
             # impute missing values
             imputer = SimpleImputer()
@@ -57,18 +59,16 @@ class ExpectedTimePerAlgorithmSurvivalForest:
                                          n_jobs=1,
                                          random_state=fold)
             model.fit(X_train, y_train)
-            self.trained_models.append(model)
+            self.trained_survival_models.append(model)
+
+            classification_model = RandomForestClassifier(random_state=fold, n_estimators=1000)
+            classification_model.fit(X_train, y_train_classification)
+            self.trained_classification_models.append(classification_model)
 
         print("Finished training " + str(self.num_algorithms) + " models on " + str(amount_of_training_instances) + " instances.")
 
     def predict(self, features_of_test_instance, instance_id: int):
         predicted_risk_scores = list()
-
-        #TODO
-        #sns.set_palette(sns.color_palette("husl", self.num_algorithms))
-        #TODO
-
-        #time_threshold = self.algorithm_cutoff_time / 50 #TODO
 
         for algorithm_id in range(self.num_algorithms):
             X_test = np.reshape(features_of_test_instance, (1, len(features_of_test_instance)))
@@ -79,10 +79,7 @@ class ExpectedTimePerAlgorithmSurvivalForest:
             scaler = self.trained_scalers[algorithm_id]
             X_test = scaler.transform(X_test)
 
-            model = self.trained_models[algorithm_id]
-
-            prediction = model.predict(X_test)
-            #predicted_risk_score = prediction[0] if len(prediction) > 0 else 0
+            model = self.trained_survival_models[algorithm_id]
 
             expected_survival_time = 0
             survival_function = model.predict_survival_function(X_test)[0]
@@ -97,36 +94,21 @@ class ExpectedTimePerAlgorithmSurvivalForest:
             #expected_survival_time += (last_event_probability*abs(self.algorithm_cutoff_time-last_event_time))
             predicted_risk_score = expected_survival_time
 
-            #find last index we still want to count
-            survival_function = model.predict_survival_function(X_test)[0]
-            #index_wrt_threshold = 0
-            #for i, val in enumerate(model.event_times_):
-            #    if val <= time_threshold:
-            #        index_wrt_threshold = i
-
-            #compute trimmed expected value up to that index
-            #trimmed_expected_value = 0
-            #for i in range(0, index_wrt_threshold + 1):
-            #    trimmed_expected_value += survival_function[i]
-            #trimmed_expected_value = trimmed_expected_value / (index_wrt_threshold + 1)
-            #predicted_risk_score = -trimmed_expected_value
+            classification_model = self.trained_classification_models[algorithm_id]
+            classification_prediction = classification_model.predict(X_test)[0]
+            #index_of_termination_class = np.argwhere(classification_model.classes_ == 1)[0][0]
+            #termination_probability = classification_prediction[index_of_termination_class]
+            #print(termination_probability)
+            #if termination_probability < 0.65:
+            if classification_prediction < 1:
+                # if we do not believe that it terminates, we set its timeout super high
+                predicted_risk_score = self.algorithm_cutoff_time*10
 
             predicted_risk_scores.append(predicted_risk_score)
 
-            # TODO
-            #plt.step(model.event_times_, model.predict_survival_function(X_test)[0], where="post", label=str(algorithm_id))
-
-        #plt.ylabel("Survival probability")
-        #plt.xlabel("Time in days")
-        #plt.grid(True)
-        #plt.legend()
-        #plt.show()
-
-        #TODO
-
         return np.asarray(predicted_risk_scores)
 
-    def get_x_y(self, scenario: ASlibScenario, num_requested_instances: int, algorithm_id: int, fold: int):
+    def get_sa_x_y(self, scenario: ASlibScenario, num_requested_instances: int, algorithm_id: int, fold: int):
         amount_of_training_instances = min(num_requested_instances,
                                            len(scenario.instances)) if num_requested_instances > 0 else len(
             scenario.instances)
@@ -135,21 +117,24 @@ class ExpectedTimePerAlgorithmSurvivalForest:
                                                                                     n_samples=amount_of_training_instances,
                                                                                     random_state=fold)  # scenario.feature_data, scenario.performance_data #
 
-        X_for_algorithm_id, y_for_algorithm_id = self.construct_dataset_for_algorithm_id(resampled_scenario_feature_data,
-                                                                                    resampled_scenario_performances, algorithm_id,
-                                                                                    scenario.algorithm_cutoff_time)
+        X_for_algorithm_id, y_for_algorithm_id, classification_y_for_algorithm_id = self.construct_sa_dataset_for_algorithm_id(resampled_scenario_feature_data,
+                                                                                            resampled_scenario_performances, algorithm_id,
+                                                                                            scenario.algorithm_cutoff_time)
 
-        return X_for_algorithm_id, y_for_algorithm_id
+        return X_for_algorithm_id, y_for_algorithm_id, classification_y_for_algorithm_id
 
 
-    def construct_dataset_for_algorithm_id(self, instance_features, performances, algorithm_id: int,
-                                           algorithm_cutoff_time):
+    def construct_sa_dataset_for_algorithm_id(self, instance_features, performances, algorithm_id: int,
+                                              algorithm_cutoff_time):
         performances_of_algorithm_with_id = performances.iloc[:, algorithm_id].to_numpy() if isinstance(performances, pd.DataFrame) else performances[:, algorithm_id]
         num_instances = len(performances_of_algorithm_with_id)
         finished_before_timeout = np.empty(num_instances, dtype=bool)
+        finished_before_timeout_classification = np.empty(num_instances, dtype=int)
         for i in range(0, len(performances_of_algorithm_with_id)):
             finished_before_timeout[i] = True if (
                     performances_of_algorithm_with_id[i] < algorithm_cutoff_time) else False
+            finished_before_timeout_classification[i] = 1 if (
+                    performances_of_algorithm_with_id[i] < algorithm_cutoff_time) else 0
 
             if performances_of_algorithm_with_id[i] >= algorithm_cutoff_time:
                 performances_of_algorithm_with_id[i] = (algorithm_cutoff_time * 10)
@@ -162,10 +147,10 @@ class ExpectedTimePerAlgorithmSurvivalForest:
         if isinstance(instance_features, pd.DataFrame):
             instance_features = instance_features.to_numpy()
 
-        return instance_features, status_and_performance_of_algorithm_with_id.T
+        return instance_features, status_and_performance_of_algorithm_with_id.T, finished_before_timeout_classification
 
     def get_name(self):
-        return "expected_time_per_algorithm_survival_forest"
+        return "hierarchical_expected_time_per_algorithm_survival_forest"
 
 
     def set_parameters(self, parametrization):

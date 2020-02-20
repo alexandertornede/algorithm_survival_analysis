@@ -30,7 +30,7 @@ def evaluate_train_test_split(scenario: ASlibScenario, approach, metrics, fold: 
         y_test = performance_data[instance_id]
 
         accumulated_feature_time = 0
-        if test_scenario.feature_cost_data is not None:
+        if test_scenario.feature_cost_data is not None and approach.get_name() != 'sbs' and approach.get_name() != 'oracle':
             feature_time = feature_cost_data[instance_id]
             accumulated_feature_time = np.sum(feature_time)
 
@@ -40,7 +40,6 @@ def evaluate_train_test_split(scenario: ASlibScenario, approach, metrics, fold: 
                 contains_non_censored_value = True
         if contains_non_censored_value:
             num_counted_test_values += 1
-
             predicted_scores = approach.predict(X_test, instance_id)
             for i, metric in enumerate(metrics):
                 runtime = metric.evaluate(y_test, predicted_scores, accumulated_feature_time, scenario.algorithm_cutoff_time)
