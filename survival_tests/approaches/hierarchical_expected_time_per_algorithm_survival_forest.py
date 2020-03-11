@@ -96,10 +96,12 @@ class HierarchicalExpectedTimePerAlgorithmSurvivalForest:
 
             classification_model = self.trained_classification_models[algorithm_id]
             classification_prediction = classification_model.predict(X_test)[0]
+            #classification_prediction = classification_model.predict_proba(X_test)[0]
+
             #index_of_termination_class = np.argwhere(classification_model.classes_ == 1)[0][0]
             #termination_probability = classification_prediction[index_of_termination_class]
-            #print(termination_probability)
             #if termination_probability < 0.65:
+
             if classification_prediction < 1:
                 # if we do not believe that it terminates, we set its timeout super high
                 predicted_risk_score = self.algorithm_cutoff_time*10

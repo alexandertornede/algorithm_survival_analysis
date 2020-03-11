@@ -6,6 +6,7 @@ from approaches.single_best_solver import SingleBestSolver
 from approaches.oracle import Oracle
 from approaches.survival_forest import AlgorithmSurvivalForest
 from approaches.per_algorithm_survival_forest import PerAlgorithmSurvivalForest
+from approaches.hierarchical_expected_time_per_algorithm_survival_forest import HierarchicalExpectedTimePerAlgorithmSurvivalForest
 from approaches.per_algorithm_survival_svm import PerAlgorithmSurvivalSVM
 from approaches.knn_per_algorithm_survival_forest import KnnPerAlgorithmSurvivalForest
 from approaches.expected_time_per_algorithm_survival_forest import ExpectedTimePerAlgorithmSurvivalForest
@@ -52,6 +53,8 @@ def create_approach(approach_names):
             approaches.append(KnnPerAlgorithmSurvivalForest(20))
         if approach_name == 'expected_time_per_algorithm_survival_forest':
             approaches.append(ExpectedTimePerAlgorithmSurvivalForest())
+        if approach_name == 'hierarchical_expected_time_per_algorithm_survival_forest':
+            approaches.append(HierarchicalExpectedTimePerAlgorithmSurvivalForest())
     return approaches
 
 
@@ -82,6 +85,8 @@ tune_hyperparameters = bool(int(config["EXPERIMENTS"]["tune_hyperparameters"]))
 for fold in range(1, 11):
     for scenario in scenarios:
         approaches = create_approach(approach_names)
+        if len(approaches) < 1:
+            logger.error("No approaches recognized!")
         for approach in approaches:
             metrics = list()
             metrics.append(Par10Metric())
