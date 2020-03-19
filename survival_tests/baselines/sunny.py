@@ -9,17 +9,17 @@ from sklearn.neighbors import KDTree
 
 
 class SUNNY:
-    def __init__(self):
+    def __init__(self, determine_best='min-par10'):
         self._name = 'SUNNY'
         self._imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
         self._scaler = StandardScaler()
+        self._determine_best = determine_best
         self._k = 16
 
     def get_name(self):
         return self._name
 
     def fit(self, scenario: ASlibScenario, fold: int, num_instances: int):
-        # TODO: assert assumptions, e.g. presolver, ...?
         self._num_algorithms = len(scenario.algorithms)
         self._algorithm_cutoff_time = scenario.algorithm_cutoff_time
 
@@ -31,7 +31,7 @@ class SUNNY:
         features, performances = self._preprocess_scenario(
             scenario, features, performances)
 
-        # build nearest neighbors index
+        # build nearest neighbors index based on euclidean distance
         self._model = KDTree(features, leaf_size=30, metric='euclidean')
         self._performances = np.copy(performances)
 
@@ -43,16 +43,44 @@ class SUNNY:
 
         neighbour_idx = np.squeeze(self._model.query(
             features, k=self._k, return_distance=False))
-        sub_portfolio = self._build_subportfolio(neighbour_idx)
-        schedule = self._build_schedule(neighbour_idx, sub_portfolio)
 
-        # in this setting, solely return the algorithm scheduled first by SUNNY
-        return schedule[0]
+        if self._determine_best == 'subportfolio':
+            sub_portfolio = self._build_subportfolio(neighbour_idx)
+            schedule = self._build_schedule(neighbour_idx, sub_portfolio)
+            selection = schedule[0]
+
+        elif self._determine_best == 'max-solved':
+            # select the algorithm which solved the most instances (use min PAR10 as tie-breaker) 
+            sub_performances = self._performances[neighbour_idx, :]
+            num_solved = np.sum(sub_performances < self._algorithm_cutoff_time, axis=0)
+            max_solved = np.max(num_solved)
+            indices, = np.where(num_solved >= max_solved)
+            sub_performances = sub_performances[:, indices]
+            runtime = np.sum(sub_performances, axis=0)
+            selection = indices[np.argmin(runtime)]
+            
+        elif self._determine_best == 'min-par10':
+            # select the algorithm with the lowest PAR10 score (use max solved as tie-breaker)
+            sub_performances = self._performances[neighbour_idx, :]
+            runtime = np.sum(sub_performances, axis=0)
+            min_runtime = np.min(runtime)
+            indices, = np.where(runtime <= min_runtime)
+            sub_performances = sub_performances[:, indices]
+            num_solved = np.sum(sub_performances < self._algorithm_cutoff_time, axis=0)
+            selection = indices[np.argmax(num_solved)]
+
+        else:
+            ValueError('`{}` is no valid selection strategy'.format(self._determine_best))
+        
+        # create ranking st. the selected algorithm has rank 0, any other algorithm has rank 1
+        ranking = np.ones(self._num_algorithms)
+        ranking[selection] = 0
+        return ranking
 
     def _build_subportfolio(self, neighbour_idx):
         sub_performances = self._performances[neighbour_idx, :]
 
-        # TODO: naive computation, inefficient / infeasible for > 10 - 15 algorithms
+        # naive, inefficient computation
         algorithms = range(self._num_algorithms)
         num_solved, avg_time = np.NINF, np.NINF
         sub_portfolio = None
@@ -60,7 +88,8 @@ class SUNNY:
             # compute number of solved instances and average solving time
             tmp_solved = np.count_nonzero(
                 np.min(sub_performances[:, subset], axis=1) < self._algorithm_cutoff_time)
-            # TODO: not entirely sure whether this is the correct way to compute the average runtime
+            
+            # TODO: not entirely sure whether this is the correct way to compute the average runtime as mentioned in the paper
             tmp_avg_time = np.sum(
                 sub_performances[:, subset]) / sub_performances[:, subset].size
             if tmp_solved > num_solved or (tmp_solved == num_solved and tmp_avg_time < avg_time):
@@ -83,8 +112,6 @@ class SUNNY:
         return resample(feature_data, performance_data, n_samples=num_instances, random_state=random_state)
 
     def _preprocess_scenario(self, scenario, features, performances):
-        # TODO: what to do about missing features? -> generally there should not be any missing features,
-        # since, in this case, the backup solver is selected
         features = self._imputer.fit_transform(features)
         features = self._scaler.fit_transform(features)
 

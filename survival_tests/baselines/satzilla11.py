@@ -84,18 +84,23 @@ class SATzilla11:
 
             # break remaining ties in random fashion
             if len(most_voted) > 1:
-                return self._rand.choice(list(most_voted))
+                selection = self._rand.choice(list(most_voted))
 
-            return next(iter(most_voted))
+            else:
+                selection = next(iter(most_voted))
 
-        return next(iter(most_voted))
+        else:
+            selection = next(iter(most_voted))
+
+        # create ranking st. the selected algorithm has rank 0, any other algorithm has rank 1
+        ranking = np.ones(self._num_algorithms)
+        ranking[selection] = 0
+        return ranking
 
     def _resample_instances(self, feature_data, performance_data, num_instances, random_state):
         return resample(feature_data, performance_data, n_samples=num_instances, random_state=random_state)
 
     def _preprocess_scenario(self, scenario, features, performances):
-        # TODO: what to do about missing features? -> generally there should not be any missing features,
-        # since, in this case, the backup solver is selected
         features = self._imputer.fit_transform(features)
         features = self._scaler.fit_transform(features)
 
