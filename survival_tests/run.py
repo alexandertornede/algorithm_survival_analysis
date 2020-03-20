@@ -6,6 +6,8 @@ from approaches.single_best_solver import SingleBestSolver
 from approaches.oracle import Oracle
 from approaches.survival_forest import AlgorithmSurvivalForest
 from approaches.per_algorithm_survival_forest import PerAlgorithmSurvivalForest
+from approaches.baselines.per_algorithm_regressor import PerAlgorithmRegressor
+from approaches.baselines.multiclass_algorithm_selector import MultiClassAlgorithmSelector
 from approaches.hierarchical_expected_time_per_algorithm_survival_forest import HierarchicalExpectedTimePerAlgorithmSurvivalForest
 from approaches.per_algorithm_survival_svm import PerAlgorithmSurvivalSVM
 from approaches.knn_per_algorithm_survival_forest import KnnPerAlgorithmSurvivalForest
@@ -55,6 +57,10 @@ def create_approach(approach_names):
             approaches.append(ExpectedTimePerAlgorithmSurvivalForest())
         if approach_name == 'hierarchical_expected_time_per_algorithm_survival_forest':
             approaches.append(HierarchicalExpectedTimePerAlgorithmSurvivalForest())
+        if approach_name == 'per_algorithm_regressor':
+            approaches.append(PerAlgorithmRegressor())
+        if approach_name == 'multiclass_algorithm_selector':
+            approaches.append(MultiClassAlgorithmSelector())
     return approaches
 
 
@@ -93,8 +99,8 @@ for fold in range(1, 11):
             if approach.get_name() != 'oracle':
                 metrics.append(NumberUnsolvedInstances(False))
                 metrics.append(NumberUnsolvedInstances(True))
-                metrics.append(Par10SchedulingMetric(2))
-                metrics.append(Par10SchedulingMetric(3))
+                #metrics.append(Par10SchedulingMetric(2))
+                #metrics.append(Par10SchedulingMetric(3))
                 #metrics.append(Par10SchedulingMetric(5))
                 #metrics.append(Par10SchedulingMetric(-1))
             logger.info("Submitted pool task for approach \"" + str(approach.get_name()) + "\" on scenario: " + scenario)
