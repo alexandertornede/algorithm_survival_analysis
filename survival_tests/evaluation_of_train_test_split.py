@@ -14,7 +14,7 @@ def evaluate_train_test_split(scenario: ASlibScenario, approach, metrics, fold: 
     else:
         approach.fit(train_scenario, fold, amount_of_training_instances)
 
-    approach_metric_values = np.empty(len(metrics))
+    approach_metric_values = np.zeros(len(metrics))
 
     num_counted_test_values = 0
 
@@ -46,5 +46,7 @@ def evaluate_train_test_split(scenario: ASlibScenario, approach, metrics, fold: 
                 approach_metric_values[i] = (approach_metric_values[i] + runtime)
 
     approach_metric_values = np.true_divide(approach_metric_values, num_counted_test_values)
+
+    print('PAR10: {0:.10f}'.format(approach_metric_values[0]))
 
     return approach_metric_values

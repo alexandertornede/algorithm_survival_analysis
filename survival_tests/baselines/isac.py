@@ -6,13 +6,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.impute import SimpleImputer
 from sklearn.utils import resample
-from survival_tests.baselines.gmeans import GMeans
+from baselines.gmeans import GMeans
 
 
 class ISAC:
 
     def __init__(self):
-        self._name = 'ISAC'
+        self._name = 'isac'
         self._imputer = SimpleImputer()
         self._scaler = MaxAbsScaler()
         self._solvers = {}
@@ -25,15 +25,13 @@ class ISAC:
         self._algorithm_cutoff_time = scenario.algorithm_cutoff_time
 
         # resample `amount_of_training_instances` instances and preprocess them accordingly
-        num_instances = min(num_instances, len(
-            scenario.instances)) if num_instances > 0 else len(scenario.instances)
         features, performances = self._resample_instances(
             scenario.feature_data.values, scenario.performance_data.values, num_instances, random_state=fold)
         features, performances = self._preprocess_scenario(
             scenario, features, performances)
 
         # fit g-means clustering on normalized feature vectors and compute respectively best solvers
-        self._gmeans = GMeans().fit(features)
+        self._gmeans = GMeans(random_state=fold).fit(features)
         for label, center in enumerate(self._gmeans.cluster_centers_):
             performances_ = performances[self._gmeans.labels_ == label]
             self._solvers[label] = np.argmin(np.sum(performances_, axis=0))
@@ -63,6 +61,7 @@ class ISAC:
         return ranking
 
     def _resample_instances(self, feature_data, performance_data, num_instances, random_state):
+        num_instances = min(num_instances, np.size(performance_data, axis=0)) if num_instances > 0 else np.size(performance_data, axis=0)
         return resample(feature_data, performance_data, n_samples=num_instances, random_state=random_state)
 
     def _preprocess_scenario(self, scenario, features, performances):
