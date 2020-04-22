@@ -55,7 +55,7 @@ class SurrogateSurvivalForest:
             self.risk_func = lambda x: np.minimum((-1) * alpha * np.log(1.0 - x), 3.0)
             self.imputer, self.scaler, self.models = self.fit_regressors(features, performances, random_state=fold)
 
-        elif self.criterion == 'Gridsearch':
+        elif self.criterion == 'GridSearch':
             warnings.filterwarnings('ignore')
             
             # train model to later optimize surrogate hyperparameters against

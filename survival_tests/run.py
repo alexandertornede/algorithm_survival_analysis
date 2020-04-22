@@ -12,8 +12,8 @@ from approaches.hierarchical_expected_time_per_algorithm_survival_forest import 
 from approaches.per_algorithm_survival_svm import PerAlgorithmSurvivalSVM
 from approaches.knn_per_algorithm_survival_forest import KnnPerAlgorithmSurvivalForest
 from approaches.expected_time_per_algorithm_survival_forest import ExpectedTimePerAlgorithmSurvivalForest
-from approaches.surrogate import SurrogateSurvivalForest
-from approaches.auto_surrogate import SurrogateAutoSurvivalForest
+from approaches.survival_forests.surrogate import SurrogateSurvivalForest
+from approaches.survival_forests.auto_surrogate import SurrogateAutoSurvivalForest
 from baselines.per_algorithm_regressor import PerAlgorithmRegressor
 from baselines.multiclass_algorithm_selector import MultiClassAlgorithmSelector
 from baselines.sunny import SUNNY
@@ -72,7 +72,7 @@ def create_approach(approach_names):
                 criterion='Polynomial'))
         if approach_name == 'GridSearchSurvivalForest':
             approaches.append(SurrogateSurvivalForest(
-                criterion='GridSearchSurvivalForest'))
+                criterion='GridSearch'))
         if approach_name == 'ExponentialSurvivalForest':
             approaches.append(SurrogateSurvivalForest(
                 criterion='Exponential'))
@@ -125,6 +125,7 @@ tune_hyperparameters = bool(int(config["EXPERIMENTS"]["tune_hyperparameters"]))
 for fold in range(1, 11):
     for scenario in scenarios:
         approaches = create_approach(approach_names)
+        print(approaches)
 
         if len(approaches) < 1:
             logger.error("No approaches recognized!")
@@ -142,8 +143,9 @@ for fold in range(1, 11):
                         str(approach.get_name()) + "\" on scenario: " + scenario)
             pool.apply_async(evaluate_scenario, args=(scenario, approach, metrics,
                                                       amount_of_scenario_training_instances, fold, config, tune_hyperparameters), callback=log_result)
-
+            
             #evaluate_scenario(scenario, approach, metrics, amount_of_scenario_training_instances, fold, config, tune_hyperparameters)
+            print('Finished evaluation of fold')
 
 pool.close()
 pool.join()
