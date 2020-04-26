@@ -43,11 +43,17 @@ class SUNNY:
             features, k=self._k, return_distance=False))
 
         if self._determine_best == 'subportfolio':
+            if np.isnan(self._performances).any():
+                raise NotImplementedError()
+
             sub_portfolio = self._build_subportfolio(neighbour_idx)
             schedule = self._build_schedule(neighbour_idx, sub_portfolio)
             selection = schedule[0]
 
         elif self._determine_best == 'max-solved':
+            if np.isnan(self._performances).any():
+                raise NotImplementedError()
+            
             # select the algorithm which solved the most instances (use min PAR10 as tie-breaker)
             sub_performances = self._performances[neighbour_idx, :]
             num_solved = np.sum(sub_performances <
@@ -59,14 +65,21 @@ class SUNNY:
             selection = indices[np.argmin(runtime)]
 
         elif self._determine_best == 'min-par10':
-            # select the algorithm with the lowest PAR10 score (use max solved as tie-breaker)
+            # select the algorithm with the lowest mean PAR10 score (use max solved as tie-breaker)
             sub_performances = self._performances[neighbour_idx, :]
-            runtime = np.sum(sub_performances, axis=0)
-            min_runtime = np.min(runtime)
+            runtime = np.nanmean(sub_performances, axis=0)
+            
+            if not np.isnan(runtime).all():
+                min_runtime = np.nanmin(runtime)
+                runtime = np.nan_to_num(runtime, nan=np.inf)
+
+            else:
+                return np.random.choice(self._num_algorithms)
+
             indices, = np.where(runtime <= min_runtime)
             sub_performances = sub_performances[:, indices]
-            num_solved = np.sum(sub_performances <
-                                self._algorithm_cutoff_time, axis=0)
+
+            num_solved = np.sum(np.nan_to_num(sub_performances, nan=np.inf) < self._algorithm_cutoff_time)
             selection = indices[np.argmax(num_solved)]
 
         else:

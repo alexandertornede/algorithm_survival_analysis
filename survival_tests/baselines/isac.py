@@ -34,7 +34,7 @@ class ISAC:
         self._gmeans = GMeans(random_state=fold).fit(features)
         for label, center in enumerate(self._gmeans.cluster_centers_):
             performances_ = performances[self._gmeans.labels_ == label]
-            self._solvers[label] = np.argmin(np.nansum(performances_, axis=0))
+            self._solvers[label] = np.argmin(np.nanmean(performances_, axis=0))
 
         # compute SBS which will be used for instances deviating too harshly from every computed centroid
         self._sbs = np.argmin(np.sum(performances, axis=0))    
