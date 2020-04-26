@@ -34,7 +34,9 @@ def evaluate(scenario: ASlibScenario, approach, metrics, amount_of_training_inst
         parametrization = optimizer.optimize(scenario, approach)
         approach.set_parameters(parametrization)
 
-    metric_results = evaluate_train_test_split(scenario, approach, metrics, fold, amount_of_training_instances)
+    train_status = db_config["EXPERIMENTS"]["train_status"]
+    metric_results = evaluate_train_test_split(scenario, approach, metrics, fold, amount_of_training_instances, train_status)
+
     for i, result in enumerate(metric_results):
         publish_results_to_database(db_config, scenario.scenario, fold, approach.get_name(), metrics[i].get_name(), result)
 

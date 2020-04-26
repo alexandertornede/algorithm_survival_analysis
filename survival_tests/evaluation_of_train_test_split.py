@@ -1,13 +1,26 @@
-from aslib_scenario.aslib_scenario import ASlibScenario
-import numpy as np
+import copy
 import logging
+import numpy as np
+from aslib_scenario.aslib_scenario import ASlibScenario
 
 logger = logging.getLogger("evaluate_train_test_split")
 logger.addHandler(logging.StreamHandler())
 
 
-def evaluate_train_test_split(scenario: ASlibScenario, approach, metrics, fold: int, amount_of_training_instances: int):
+def evaluate_train_test_split(scenario: ASlibScenario, approach, metrics, fold: int, amount_of_training_instances: int, train_status:str):
     test_scenario, train_scenario = scenario.get_split(indx=fold)
+
+    if train_status != 'standard':
+        train_scenario = copy.deepcopy(train_scenario)
+        threshold = train_scenario.algorithm_cutoff_time
+        if train_status == 'clip_censored':
+            train_scenario.performance_data = train_scenario.performance_data.clip(upper=threshold)
+
+        elif train_status == 'ignore_censored':
+            train_scenario.performance_data = train_scenario.performance_data.replace(10*threshold, np.nan)
+
+    
+
 
     if approach.get_name() == 'oracle':
         approach.fit(test_scenario, fold, amount_of_training_instances)

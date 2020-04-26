@@ -125,7 +125,6 @@ tune_hyperparameters = bool(int(config["EXPERIMENTS"]["tune_hyperparameters"]))
 for fold in range(1, 11):
     for scenario in scenarios:
         approaches = create_approach(approach_names)
-        print(approaches)
 
         if len(approaches) < 1:
             logger.error("No approaches recognized!")

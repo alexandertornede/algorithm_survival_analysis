@@ -48,6 +48,10 @@ class SATzilla11:
             sample_weights = self._compute_sample_weights(
                 (i, j), performances)
 
+            # account for nan values (i.e. ignore pairwise comparisons that involve an algorithm run violating
+            # the cutoff if the config specifies 'ignore_censored'), hence set all respective weights to 0
+            sample_weights = np.nan_to_num(sample_weights)
+
             # TODO: how to set the remaining hyperparameters? 
             self._models[(i, j)] = RandomForestClassifier(
                 n_estimators=99, max_features='log2', n_jobs=1, random_state=fold)
