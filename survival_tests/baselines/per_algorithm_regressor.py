@@ -8,8 +8,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.utils import resample
 import logging
 from sklearn.base import clone
-#import matplotlib.pyplot as plt
-#import seaborn as sns
 
 
 class PerAlgorithmRegressor:
@@ -90,12 +88,14 @@ class PerAlgorithmRegressor:
                                            algorithm_cutoff_time):
         performances_of_algorithm_with_id = performances.iloc[:, algorithm_id].to_numpy() if isinstance(performances, pd.DataFrame) else performances[:, algorithm_id]
         num_instances = len(performances_of_algorithm_with_id)
-        for i in range(0, len(performances_of_algorithm_with_id)):
-            if performances_of_algorithm_with_id[i] >= algorithm_cutoff_time:
-                performances_of_algorithm_with_id[i] = (algorithm_cutoff_time * 10)
 
         if isinstance(instance_features, pd.DataFrame):
             instance_features = instance_features.to_numpy()
+
+        # drop all instances for the respective algorithm that contain nan values
+        nan_mask = np.isnan(performances_of_algorithm_with_id)
+        instance_features = instance_features[~nan_mask] 
+        performances_of_algorithm_with_id = performances_of_algorithm_with_id[~nan_mask]
 
         return instance_features, performances_of_algorithm_with_id
 

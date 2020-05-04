@@ -75,9 +75,18 @@ class MultiClassAlgorithmSelector:
 
     def construct_dataset(self, instance_features, performances):
         performances = performances.iloc[:, :].to_numpy() if isinstance(performances, pd.DataFrame) else performances[:, :]
+
+        # ignore all unsolvable training instances 
+        nan_mask = np.all(np.isnan(performances), axis=1)
+        instance_features = instance_features[~nan_mask]
+        performances = performances[~nan_mask]       
+
         num_instances = len(performances)
         best_algorithm_ids = list()
         for i in range(0, num_instances):
+            min_runtime = np.nanmin(performances[i])
+            best_algorithm_id = np.nonzero(performances[i] == min_runtime)[0][0]
+
             best_algorithm_id = np.argmin(performances[i])
             best_algorithm_ids.append(best_algorithm_id)
 

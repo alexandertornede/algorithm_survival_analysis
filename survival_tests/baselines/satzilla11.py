@@ -33,8 +33,6 @@ class SATzilla11:
         self._algorithm_cutoff_time = scenario.algorithm_cutoff_time
 
         # resample `amount_of_training_instances` instances and preprocess them accordingly
-        num_instances = min(num_instances, len(
-            scenario.instances)) if num_instances > 0 else len(scenario.instances)
         features, performances = self._resample_instances(
             scenario.feature_data.values, scenario.performance_data.values, num_instances, random_state=fold)
         features, performances = self._preprocess_scenario(
@@ -50,7 +48,11 @@ class SATzilla11:
             sample_weights = self._compute_sample_weights(
                 (i, j), performances)
 
-            # TODO: how to set the remaining hyperparameters? -> not explicitly stated
+            # account for nan values (i.e. ignore pairwise comparisons that involve an algorithm run violating
+            # the cutoff if the config specifies 'ignore_censored'), hence set all respective weights to 0
+            sample_weights = np.nan_to_num(sample_weights)
+
+            # TODO: how to set the remaining hyperparameters? 
             self._models[(i, j)] = RandomForestClassifier(
                 n_estimators=99, max_features='log2', n_jobs=1, random_state=fold)
             self._models[(i, j)].fit(features, pair_target,
@@ -98,6 +100,7 @@ class SATzilla11:
         return ranking
 
     def _resample_instances(self, feature_data, performance_data, num_instances, random_state):
+        num_instances = min(num_instances, np.size(performance_data, axis=0)) if num_instances > 0 else np.size(performance_data, axis=0)
         return resample(feature_data, performance_data, n_samples=num_instances, random_state=random_state)
 
     def _preprocess_scenario(self, scenario, features, performances):

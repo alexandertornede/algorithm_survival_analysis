@@ -10,7 +10,7 @@ from sklearn.neighbors import KDTree
 
 class SUNNY:
     def __init__(self, determine_best='min-par10'):
-        self._name = 'SUNNY'
+        self._name = 'sunny'
         self._imputer = SimpleImputer(missing_values=np.nan, strategy='mean')
         self._scaler = StandardScaler()
         self._determine_best = determine_best
@@ -24,8 +24,6 @@ class SUNNY:
         self._algorithm_cutoff_time = scenario.algorithm_cutoff_time
 
         # resample `amount_of_training_instances` instances and preprocess them accordingly
-        num_instances = min(num_instances, len(
-            scenario.instances)) if num_instances > 0 else len(scenario.instances)
         features, performances = self._resample_instances(
             scenario.feature_data, scenario.performance_data, num_instances, random_state=fold)
         features, performances = self._preprocess_scenario(
@@ -45,33 +43,49 @@ class SUNNY:
             features, k=self._k, return_distance=False))
 
         if self._determine_best == 'subportfolio':
+            if np.isnan(self._performances).any():
+                raise NotImplementedError()
+
             sub_portfolio = self._build_subportfolio(neighbour_idx)
             schedule = self._build_schedule(neighbour_idx, sub_portfolio)
             selection = schedule[0]
 
         elif self._determine_best == 'max-solved':
-            # select the algorithm which solved the most instances (use min PAR10 as tie-breaker) 
+            if np.isnan(self._performances).any():
+                raise NotImplementedError()
+            
+            # select the algorithm which solved the most instances (use min PAR10 as tie-breaker)
             sub_performances = self._performances[neighbour_idx, :]
-            num_solved = np.sum(sub_performances < self._algorithm_cutoff_time, axis=0)
+            num_solved = np.sum(sub_performances <
+                                self._algorithm_cutoff_time, axis=0)
             max_solved = np.max(num_solved)
             indices, = np.where(num_solved >= max_solved)
             sub_performances = sub_performances[:, indices]
             runtime = np.sum(sub_performances, axis=0)
             selection = indices[np.argmin(runtime)]
-            
+
         elif self._determine_best == 'min-par10':
-            # select the algorithm with the lowest PAR10 score (use max solved as tie-breaker)
+            # select the algorithm with the lowest mean PAR10 score (use max solved as tie-breaker)
             sub_performances = self._performances[neighbour_idx, :]
-            runtime = np.sum(sub_performances, axis=0)
-            min_runtime = np.min(runtime)
+            runtime = np.nanmean(sub_performances, axis=0)
+            
+            if not np.isnan(runtime).all():
+                min_runtime = np.nanmin(runtime)
+                runtime = np.nan_to_num(runtime, nan=np.inf)
+
+            else:
+                return np.random.choice(self._num_algorithms)
+
             indices, = np.where(runtime <= min_runtime)
             sub_performances = sub_performances[:, indices]
-            num_solved = np.sum(sub_performances < self._algorithm_cutoff_time, axis=0)
+
+            num_solved = np.sum(np.nan_to_num(sub_performances, nan=np.inf) < self._algorithm_cutoff_time)
             selection = indices[np.argmax(num_solved)]
 
         else:
-            ValueError('`{}` is no valid selection strategy'.format(self._determine_best))
-        
+            ValueError('`{}` is no valid selection strategy'.format(
+                self._determine_best))
+
         # create ranking st. the selected algorithm has rank 0, any other algorithm has rank 1
         ranking = np.ones(self._num_algorithms)
         ranking[selection] = 0
@@ -88,7 +102,7 @@ class SUNNY:
             # compute number of solved instances and average solving time
             tmp_solved = np.count_nonzero(
                 np.min(sub_performances[:, subset], axis=1) < self._algorithm_cutoff_time)
-            
+
             # TODO: not entirely sure whether this is the correct way to compute the average runtime as mentioned in the paper
             tmp_avg_time = np.sum(
                 sub_performances[:, subset]) / sub_performances[:, subset].size
@@ -109,6 +123,8 @@ class SUNNY:
         return [alg for (_, _, alg) in schedule]
 
     def _resample_instances(self, feature_data, performance_data, num_instances, random_state):
+        num_instances = min(num_instances, np.size(
+            performance_data, axis=0)) if num_instances > 0 else np.size(performance_data, axis=0)
         return resample(feature_data, performance_data, n_samples=num_instances, random_state=random_state)
 
     def _preprocess_scenario(self, scenario, features, performances):
