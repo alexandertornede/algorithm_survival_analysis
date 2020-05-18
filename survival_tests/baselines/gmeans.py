@@ -7,7 +7,7 @@ from sklearn.metrics import pairwise_distances
 
 
 class GMeans:
-    def __init__(self, min_samples=0.001, significance=0.001, n_init=10, n_init_kmeans=5, n_init_final=10, random_state=None):
+    def __init__(self, min_samples=0.001, significance=0.05, n_init=5, n_init_kmeans=5, n_init_final=5, random_state=None):
         self._min_samples = min_samples   
         self._significance = [0.15, 0.1, 0.05, 0.025, 0.001].index(significance)
         self._n_init = n_init
@@ -15,6 +15,7 @@ class GMeans:
         self._n_init_final = n_init_final
         self._random_state = check_random_state(random_state)
         self._kmeans = None
+
 
     def fit(self, X):
         self.inertia_ = np.inf
@@ -28,12 +29,14 @@ class GMeans:
 
             while queue:
                 center_idx = queue.pop()
-                
+
                 # get instances assigned to the current cluster center
                 X_ = X[kmeans.labels_ == center_idx]
-                
                 if np.size(X_, axis=0) <= 2:
                     continue
+
+                _, counts = np.unique(kmeans.labels_, return_counts=True)
+                counts, count_counts = np.unique(counts, return_counts=True)
 
                 # fit kmeans with two centroids on all instances assigned to the current cluster
                 with warnings.catch_warnings():
@@ -45,8 +48,10 @@ class GMeans:
                 child_one, child_two = tmp_kmeans.cluster_centers_
                 
                 v = child_two - child_one
+                tmp_labels = tmp_kmeans.predict(X)
+                unique = np.unique(tmp_labels[kmeans.labels_ == center_idx])
 
-                if np.linalg.norm(v, ord=2) <= 0.0:
+                if np.linalg.norm(v, ord=2) <= 0.0 or unique.size < 2:
                     continue
                 
                 # normalize to unit variance and compute Anderson statistics
@@ -66,9 +71,8 @@ class GMeans:
                     del_idx = kmeans.labels_ > center_idx
                     ins_idx = kmeans.labels_ == center_idx
                     kmeans.labels_[del_idx] -= 1
-                    tmp_labels = tmp_kmeans.predict(X)
                     kmeans.labels_[ins_idx] = tmp_labels[ins_idx] + offset
-                    
+
                     # add children to queue for further processing
                     queue.extend([offset, offset + 1])
             
@@ -81,6 +85,8 @@ class GMeans:
             self.cluster_centers_ = self._kmeans.cluster_centers_
             self.labels_ = self._kmeans.labels_
 
+
+        raise RuntimeError()
         return self
 
 
