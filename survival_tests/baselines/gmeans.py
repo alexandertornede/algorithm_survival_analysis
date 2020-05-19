@@ -86,7 +86,6 @@ class GMeans:
             self.labels_ = self._kmeans.labels_
 
 
-        raise RuntimeError()
         return self
 
 
