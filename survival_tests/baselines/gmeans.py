@@ -60,7 +60,7 @@ class GMeans:
                 std = np.std(y)
                 y = (y - mean) / std
                 A2, critical, sig = anderson(y)
-                
+
                 if A2 > critical[self._significance]:
                     # replace old cluster center                
                     kmeans.cluster_centers_ = np.delete(kmeans.cluster_centers_, center_idx, axis=0)
@@ -85,8 +85,6 @@ class GMeans:
             self.cluster_centers_ = self._kmeans.cluster_centers_
             self.labels_ = self._kmeans.labels_
 
-
-        raise RuntimeError()
         return self
 
 
