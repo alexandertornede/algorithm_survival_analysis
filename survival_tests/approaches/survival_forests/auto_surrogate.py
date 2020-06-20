@@ -30,13 +30,13 @@ class SurrogateAutoSurvivalForest:
         self.bootstrap = True
         self.oob_score = False
 
-    def resolve_risk_function(self, function, alpha, exp_threshold):
+    def resolve_risk_function(self, function, alpha_poly, alpha_exp, exp_threshold):
         if function == 'polynomial':
-            def risk_function(x): return x**alpha
+            def risk_function(x): return x**alpha_poly
 
         elif function == 'exponential':
             def risk_function(x): return np.minimum(
-                (-1) * alpha * np.log(1.0 - x), exp_threshold)
+                (-1) * alpha_exp * np.log(1.0 - x), exp_threshold)
 
         else:
             raise ValueError('Unknown risk function')
@@ -45,7 +45,7 @@ class SurrogateAutoSurvivalForest:
 
     def evaluate_parameterization(self, parameterization, weight=None):
         risk_func = self.resolve_risk_function(
-            parameterization['risk_function'], parameterization['alpha'], parameterization['exp_threshold'])
+            parameterization['risk_function'], parameterization['alpha_poly'], parameterization['alpha_exp'], parameterization['exp_threshold'])
         evaluation = {'par10': self.evaluate_surrogate(
             risk_func, self.val_event_times, self.val_survival_functions, self.Y_val)}
 
@@ -106,7 +106,7 @@ class SurrogateAutoSurvivalForest:
         del self.features, self.performances, self.Y_val, self.val_event_times, self.val_survival_functions
 
     def optimize(self):
-        SOBOL_TRIALS = 50
+        SOBOL_TRIALS = 75
         gpei_list = [50, 30, 10, 0]
         parameters = None
 
@@ -117,9 +117,11 @@ class SurrogateAutoSurvivalForest:
                         ChoiceParameter(name='risk_function', values=[
                                         'polynomial', 'exponential'], parameter_type=ParameterType.STRING),
                         RangeParameter(
-                            name='alpha', lower=1.0, upper=3.0, parameter_type=ParameterType.FLOAT),
+                            name='alpha_poly', lower=1.0, upper=5.0, parameter_type=ParameterType.FLOAT),
+                        RangeParameter(
+                            name='alpha_exp', lower=0.0, upper=1.0, parameter_type=ParameterType.FLOAT),
                         RangeParameter(name='exp_threshold', lower=1.0,
-                                       upper=5.0, parameter_type=ParameterType.FLOAT)
+                                       upper=10.0, parameter_type=ParameterType.FLOAT)
                     ]
                 )
 
@@ -150,12 +152,13 @@ class SurrogateAutoSurvivalForest:
                 print('GPEI Optimization failed')
                 if gpei_trials == 0:
                     # choose expectation if optimization failed for all gpei_trial values
-                    parameters = {'risk_function': 'polynomial', 'alpha': 1.0}
+                    # exp thresholds are dummy variables
+                    parameters = {'risk_function': 'polynomial', 'alpha_poly': 1.0, 'alpha_exp': 1.0, 'exp_threshold':1.0}
 
                 else:
                     continue
 
-        return self.resolve_risk_function(parameters['risk_function'], parameters['alpha'], parameters['exp_threshold'])
+        return self.resolve_risk_function(parameters['risk_function'], parameters['alpha_poly'],  parameters['alpha_exp'], parameters['exp_threshold'])
 
     def predict(self, features, instance_id: int):
         assert(features.ndim == 1), 'Must be 1-dimensional'
@@ -236,10 +239,6 @@ class SurrogateAutoSurvivalForest:
         for i in range(0, len(performances_of_algorithm_with_id)):
             finished_before_timeout[i] = True if (
                 performances_of_algorithm_with_id[i] < algorithm_cutoff_time) else False
-
-            if performances_of_algorithm_with_id[i] >= algorithm_cutoff_time:
-                performances_of_algorithm_with_id[i] = (
-                    algorithm_cutoff_time * 10)
 
         # for each instance build target, consisting of (censored, runtime)
         status_and_performance_of_algorithm_with_id = np.empty(dtype=[('cens', np.bool), ('time', np.float)],

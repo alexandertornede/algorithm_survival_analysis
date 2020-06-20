@@ -80,6 +80,9 @@ def create_approach(approach_names):
                 criterion='Exponential'))
         if approach_name == 'SurrogateAutoSurvivalForest':
             approaches.append(SurrogateAutoSurvivalForest())
+        if approach_name == 'PAR10SurvivalForest':
+            approaches.append(SurrogateSurvivalForest(
+                criterion='PAR10'))
         if approach_name == 'hierarchical_expected_time_per_algorithm_survival_forest':
             approaches.append(
                 HierarchicalExpectedTimePerAlgorithmSurvivalForest())
@@ -153,8 +156,8 @@ for fold in range(1, 11):
             pool.apply_async(evaluate_scenario, args=(scenario, approach, metrics,
                                                       amount_of_scenario_training_instances, fold, config, tune_hyperparameters), callback=log_result)
 
-            # evaluate_scenario(scenario, approach, metrics,
-            #                  amount_of_scenario_training_instances, fold, config, tune_hyperparameters)
+            #evaluate_scenario(scenario, approach, metrics,
+            #                 amount_of_scenario_training_instances, fold, config, tune_hyperparameters)
             print('Finished evaluation of fold')
 
 pool.close()

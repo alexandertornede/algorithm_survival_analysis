@@ -55,6 +55,11 @@ class SurrogateSurvivalForest:
             self.risk_func = lambda x: np.minimum((-1) * alpha * np.log(1.0 - x), 3.0)
             self.imputer, self.scaler, self.models = self.fit_regressors(features, performances, random_state=fold)
 
+        elif self.criterion == 'PAR10':
+            # PAR10 surrogate for normalized values between [0,1]
+            self.risk_func = np.vectorize(lambda x: x if x < 1.0 else 10.0)
+            self.imputer, self.scaler, self.models = self.fit_regressors(features, performances, random_state=fold)
+
         elif self.criterion == 'GridSearch':
             warnings.filterwarnings('ignore')
             
@@ -75,13 +80,13 @@ class SurrogateSurvivalForest:
                 event_times[alg_id] /= self.algorithm_cutoff_time
             
             # search for best parametrization of risk function
-            alpha_domain = np.linspace(1.0, 3.0, 21)
+            alpha_domain = np.linspace(1.0, 5.0, 21)
             results = [self.evaluate_surrogate(lambda x: x**alpha, event_times, survival_functions, Y_val) for alpha in alpha_domain]
             poly_idx, poly_val = min(enumerate(results), key=itemgetter(1))
             poly_alpha = alpha_domain[poly_idx]
             
-            alpha_domain = np.linspace(2.0, 0.0, 20, endpoint=False)
-            threshold = 3.0
+            alpha_domain = np.linspace(1.0, 0.0, 20, endpoint=False)
+            threshold = 5.0
             results = [self.evaluate_surrogate(lambda x: np.minimum((-1) * alpha * np.log(1.0 - x), threshold), event_times, survival_functions, Y_val) for alpha in alpha_domain]
             exp_idx, exp_val = min(enumerate(results), key=itemgetter(1))
             exp_alpha = alpha_domain[exp_idx]
@@ -189,11 +194,7 @@ class SurrogateSurvivalForest:
         for i in range(0, len(performances_of_algorithm_with_id)):
             finished_before_timeout[i] = True if (
                     performances_of_algorithm_with_id[i] < algorithm_cutoff_time) else False
-
-            if performances_of_algorithm_with_id[i] >= algorithm_cutoff_time:
-                performances_of_algorithm_with_id[i] = (algorithm_cutoff_time * 10)
-                
-                
+     
         # for each instance build target, consisting of (censored, runtime)
         status_and_performance_of_algorithm_with_id = np.empty(dtype=[('cens', np.bool), ('time', np.float)],
                                                                shape=instance_features.shape[0])
