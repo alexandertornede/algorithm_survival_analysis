@@ -20,6 +20,8 @@ from baselines.sunny import SUNNY
 from baselines.snnap import SNNAP
 from baselines.isac import ISAC
 from baselines.satzilla11 import SATzilla11
+from baselines.satzilla07 import SATzilla07
+from sklearn.linear_model import Ridge
 from par_10_metric import Par10Metric
 from number_unsolved_instances import NumberUnsolvedInstances
 from par_10_scheduling_metric import Par10SchedulingMetric
@@ -78,11 +80,19 @@ def create_approach(approach_names):
                 criterion='Exponential'))
         if approach_name == 'SurrogateAutoSurvivalForest':
             approaches.append(SurrogateAutoSurvivalForest())
+        if approach_name == 'PAR10SurvivalForest':
+            approaches.append(SurrogateSurvivalForest(
+                criterion='PAR10'))
         if approach_name == 'hierarchical_expected_time_per_algorithm_survival_forest':
             approaches.append(
                 HierarchicalExpectedTimePerAlgorithmSurvivalForest())
         if approach_name == 'per_algorithm_regressor':
             approaches.append(PerAlgorithmRegressor())
+        if approach_name == 'imputed_per_algorithm_rf_regressor':
+            approaches.append(PerAlgorithmRegressor(impute_censored=True))
+        if approach_name == 'imputed_per_algorithm_ridge_regressor':
+            approaches.append(PerAlgorithmRegressor(
+                scikit_regressor=Ridge(alpha=1.0), impute_censored=True))
         if approach_name == 'multiclass_algorithm_selector':
             approaches.append(MultiClassAlgorithmSelector())
         if approach_name == 'sunny':
@@ -91,6 +101,8 @@ def create_approach(approach_names):
             approaches.append(SNNAP())
         if approach_name == 'satzilla-11':
             approaches.append(SATzilla11())
+        if approach_name == 'satzilla-07':
+            approaches.append(SATzilla07())
         if approach_name == 'isac':
             approaches.append(ISAC())
     return approaches
@@ -123,6 +135,7 @@ amount_of_scenario_training_instances = int(
 tune_hyperparameters = bool(int(config["EXPERIMENTS"]["tune_hyperparameters"]))
 
 for fold in range(1, 11):
+
     for scenario in scenarios:
         approaches = create_approach(approach_names)
 
@@ -142,8 +155,9 @@ for fold in range(1, 11):
                         str(approach.get_name()) + "\" on scenario: " + scenario)
             pool.apply_async(evaluate_scenario, args=(scenario, approach, metrics,
                                                       amount_of_scenario_training_instances, fold, config, tune_hyperparameters), callback=log_result)
-            
-            #evaluate_scenario(scenario, approach, metrics, amount_of_scenario_training_instances, fold, config, tune_hyperparameters)
+
+            #evaluate_scenario(scenario, approach, metrics,
+            #                 amount_of_scenario_training_instances, fold, config, tune_hyperparameters)
             print('Finished evaluation of fold')
 
 pool.close()
