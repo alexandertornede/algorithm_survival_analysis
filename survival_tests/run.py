@@ -94,8 +94,8 @@ config = load_configuration()
 logger.info("Running experiments with config:")
 print_config(config)
 
-fold = int(sys.argv[1])
-logger.info("Running experiments for fold " + str(fold))
+#fold = int(sys.argv[1])
+#logger.info("Running experiments for fold " + str(fold))
 
 db_handle, table_name = database_utils.initialize_mysql_db_and_table_name_from_config(
     config)
