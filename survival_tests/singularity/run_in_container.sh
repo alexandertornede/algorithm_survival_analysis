@@ -1,2 +1,2 @@
 source activate survival_tests
-conda list
+# code to run the app
