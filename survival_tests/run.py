@@ -6,12 +6,6 @@ import database_utils
 from evaluation import evaluate_scenario
 from approaches.single_best_solver import SingleBestSolver
 from approaches.oracle import Oracle
-from approaches.survival_forest import AlgorithmSurvivalForest
-from approaches.per_algorithm_survival_forest import PerAlgorithmSurvivalForest
-from approaches.hierarchical_expected_time_per_algorithm_survival_forest import HierarchicalExpectedTimePerAlgorithmSurvivalForest
-from approaches.per_algorithm_survival_svm import PerAlgorithmSurvivalSVM
-from approaches.knn_per_algorithm_survival_forest import KnnPerAlgorithmSurvivalForest
-from approaches.expected_time_per_algorithm_survival_forest import ExpectedTimePerAlgorithmSurvivalForest
 from approaches.survival_forests.surrogate import SurrogateSurvivalForest
 from approaches.survival_forests.auto_surrogate import SurrogateAutoSurvivalForest
 from baselines.per_algorithm_regressor import PerAlgorithmRegressor
@@ -24,7 +18,6 @@ from baselines.satzilla07 import SATzilla07
 from sklearn.linear_model import Ridge
 from par_10_metric import Par10Metric
 from number_unsolved_instances import NumberUnsolvedInstances
-from par_10_scheduling_metric import Par10SchedulingMetric
 
 
 logger = logging.getLogger("run")
@@ -58,34 +51,18 @@ def create_approach(approach_names):
             approaches.append(SingleBestSolver())
         if approach_name == 'oracle':
             approaches.append(Oracle())
-        if approach_name == 'survival_forest':
-            approaches.append(AlgorithmSurvivalForest())
-        if approach_name == 'per_algorithm_survival_forest':
-            approaches.append(PerAlgorithmSurvivalForest())
-        if approach_name == 'per_algorithm_survival_svm':
-            approaches.append(PerAlgorithmSurvivalSVM())
-        if approach_name == 'knn_per_algorithm_survival_forest':
-            approaches.append(KnnPerAlgorithmSurvivalForest(20))
         if approach_name == 'ExpectationSurvivalForest':
-            approaches.append(SurrogateSurvivalForest(
-                criterion='Expectation'))
+            approaches.append(SurrogateSurvivalForest(criterion='Expectation'))
         if approach_name == 'PolynomialSurvivalForest':
-            approaches.append(SurrogateSurvivalForest(
-                criterion='Polynomial'))
+            approaches.append(SurrogateSurvivalForest(criterion='Polynomial'))
         if approach_name == 'GridSearchSurvivalForest':
-            approaches.append(SurrogateSurvivalForest(
-                criterion='GridSearch'))
+            approaches.append(SurrogateSurvivalForest(criterion='GridSearch'))
         if approach_name == 'ExponentialSurvivalForest':
-            approaches.append(SurrogateSurvivalForest(
-                criterion='Exponential'))
+            approaches.append(SurrogateSurvivalForest(criterion='Exponential'))
         if approach_name == 'SurrogateAutoSurvivalForest':
             approaches.append(SurrogateAutoSurvivalForest())
         if approach_name == 'PAR10SurvivalForest':
-            approaches.append(SurrogateSurvivalForest(
-                criterion='PAR10'))
-        if approach_name == 'hierarchical_expected_time_per_algorithm_survival_forest':
-            approaches.append(
-                HierarchicalExpectedTimePerAlgorithmSurvivalForest())
+            approaches.append(SurrogateSurvivalForest(criterion='PAR10'))
         if approach_name == 'per_algorithm_regressor':
             approaches.append(PerAlgorithmRegressor())
         if approach_name == 'imputed_per_algorithm_rf_regressor':
@@ -147,10 +124,6 @@ for fold in range(1, 11):
             if approach.get_name() != 'oracle':
                 metrics.append(NumberUnsolvedInstances(False))
                 metrics.append(NumberUnsolvedInstances(True))
-                # metrics.append(Par10SchedulingMetric(2))
-                # metrics.append(Par10SchedulingMetric(3))
-                # metrics.append(Par10SchedulingMetric(5))
-                # metrics.append(Par10SchedulingMetric(-1))
             logger.info("Submitted pool task for approach \"" +
                         str(approach.get_name()) + "\" on scenario: " + scenario)
             pool.apply_async(evaluate_scenario, args=(scenario, approach, metrics,
