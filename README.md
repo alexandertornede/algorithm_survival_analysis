@@ -2,6 +2,16 @@
 
 This repository holds the code for our paper "Run2Survive: A Decision-theoretic Approach to Algorithm Selection based on Survival Analysis" by Alexander Tornede, Marcel Wever, Stefan Werner, Felix Mohr and Eyke Hüllermeier. Regarding questions please contact alexander.tornede@upb.de .
 
+Please cite this work as
+```
+@article{tornede2020run2survive,
+  title={Run2Survive: A Decision-theoretic Approach to Algorithm Selection based on Survival Analysis},
+  author={Tornede, Alexander and Wever, Marcel and Werner, Stefan and Mohr, Felix and H{\"u}llermeier, Eyke},
+  journal={arXiv preprint arXiv:2007.02816},
+  year={2020}
+}
+```
+
 ## Abstract
 Algorithm selection (AS) deals with the automatic selection of an algorithm from a fixed set of candidate algorithms most suitable for a specific instance of an algorithmic problem class, where “suitability” often refers to an algorithm’s runtime. Due to possibly extremely long runtimes of candidate algorithms, training data for algorithm selection models is usually generated under time constraints in the sense that not all algorithms are run to completion on all instances. Thus, training data usually comprises censored information, as the true runtime of algorithms timed out remains unknown. However, many standard AS approaches are not able to handle such information in a proper way. On the other side, survival analysis (SA) naturally supports censored data and offers appropriate ways to use such data for learning distributional models of algorithm runtime, as we demonstrate in this work. We leverage such models as a basis of a sophisticated decision-theoretic approach to algorithm selection, which we dub Run2Survive. Moreover, taking advantage of a framework of this kind, we advocate a risk-averse approach to algorithm selection, in which the avoidance of a timeout is given high priority. In an extensive experimental study with the standard benchmark ASlib, our approach is shown to be highly competitive and in many cases even superior to state-of-the-art AS approaches.
 
