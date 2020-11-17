@@ -4,11 +4,13 @@ This repository holds the code for our paper "Run2Survive: A Decision-theoretic 
 
 Please cite this work as
 ```
-@article{tornede2020run2survive,
-  title={Run2Survive: A Decision-theoretic Approach to Algorithm Selection based on Survival Analysis},
+@inproceedings{tornede2020run2survive,
+  title={Run2survive: a decision-theoretic approach to algorithm selection based on survival analysis},
   author={Tornede, Alexander and Wever, Marcel and Werner, Stefan and Mohr, Felix and H{\"u}llermeier, Eyke},
-  journal={arXiv preprint arXiv:2007.02816},
-  year={2020}
+  booktitle={Asian Conference on Machine Learning},
+  pages={737--752},
+  year={2020},
+  organization={PMLR}
 }
 ```
 
